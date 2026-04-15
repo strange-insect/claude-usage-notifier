@@ -216,3 +216,12 @@ OS-dependent code is centralized in `platform_integration.py` on principle. Addi
 
 - `api.anthropic.com/api/oauth/usage` is an **unofficial endpoint**. Anthropic may change or remove it in future updates
 - The macOS version only has simple osascript-based notifications. Silent flag etc. depend on OS settings
+
+## License
+
+MIT License — see [LICENSE](LICENSE).
+
+## Disclaimer
+
+This tool calls an undocumented Anthropic endpoint. Use at your own risk;
+the author is not responsible for account issues, API changes, or outages.
