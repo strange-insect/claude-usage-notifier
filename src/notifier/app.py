@@ -12,6 +12,7 @@ from .constants import (
     OVERRUN_REPEAT_SECONDS,
     PLAN_KEYS,
 )
+from .i18n import set_language, t
 from .notifications import NotificationManager
 from .platform_integration import open_path
 from .plan_usage import PlanAlertState, PlanUsage, PlanUsagePoller
@@ -23,11 +24,12 @@ from .utils import now_str
 class ClaudeUsageNotifierApp:
     def __init__(self):
         self.config = AppConfig()
+        set_language(self.config.language)
         self.icon_file = self._save_icon_file()
         self.notifications = NotificationManager(icon_path=self.icon_file)
         self.plan_usage = PlanUsage()
         self.plan_poller = None
-        self.plan_alert_states = {key: PlanAlertState() for key, _ in PLAN_KEYS}
+        self.plan_alert_states = {key: PlanAlertState() for key in PLAN_KEYS}
         self._stop_event = threading.Event()
         self.icon = None
 
@@ -60,7 +62,7 @@ class ClaudeUsageNotifierApp:
         self.plan_poller.poll_now()
 
     def run(self):
-        self.log("アプリを起動しました。")
+        self.log(t("log.app_started"))
         self._start_plan_poller()
         threading.Thread(target=self._hourly_scheduler, daemon=True).start()
         self.icon = build_icon(self)
@@ -73,7 +75,7 @@ class ClaudeUsageNotifierApp:
         try:
             append_usage_row(usage)
         except Exception as e:
-            self.log(f"CSV 書き込み失敗: {e}")
+            self.log(t("log.csv_write_failed", err=e))
         self._check_plan_alerts(usage)
         if self.icon is not None:
             try:
@@ -84,14 +86,14 @@ class ClaudeUsageNotifierApp:
                 pass
 
     def _max_plan_pct(self) -> float:
-        vals = [getattr(self.plan_usage, k) for k, _ in PLAN_KEYS]
+        vals = [getattr(self.plan_usage, k) for k in PLAN_KEYS]
         vals = [v for v in vals if v >= 0]
         return max(vals) if vals else -1.0
 
     def _tooltip(self) -> str:
         u = self.plan_usage
         if u.error:
-            return f"{APP_NAME}\n取得失敗: {u.error}"
+            return f"{APP_NAME}\n" + t("tooltip.error", error=u.error)
 
         def fmt(v):
             return f"{v:.0f}%" if v >= 0 else "-"
@@ -104,7 +106,8 @@ class ClaudeUsageNotifierApp:
 
     def _check_plan_alerts(self, u: PlanUsage):
         now = time.time()
-        for key, label in PLAN_KEYS:
+        for key in PLAN_KEYS:
+            label = t(f"plan.{key}")
             val = getattr(u, key)
             if val < 0:
                 continue
@@ -113,7 +116,7 @@ class ClaudeUsageNotifierApp:
 
             if resets_at and resets_at != state.last_resets_at:
                 if state.last_resets_at:
-                    self.log(f"{label}: usage reset detected, clearing alert state")
+                    self.log(t("log.usage_reset", label=label))
                 state.crossed_80 = False
                 state.crossed_90 = False
                 state.crossed_100 = False
@@ -142,25 +145,25 @@ class ClaudeUsageNotifierApp:
     def _reset_line(self, u: PlanUsage, key: str) -> str:
         iso = getattr(u, f"{key}_resets_at", "")
         local = u.resets_at_local(iso)
-        return f"リセット: {local}" if local else ""
+        return t("notify.reset", local=local) if local else ""
 
     def _notify_plan_threshold(self, u: PlanUsage, key: str, label: str, val: float, level: int):
-        title = f"⚠️ {label}の利用量が{level}%を超えました"
-        body = f"現在 {val:.0f}%"
+        title = t("notify.threshold_title", label=label, level=level)
+        body = t("notify.current", val=val)
         reset = self._reset_line(u, key)
         if reset:
             body += f"  |  {reset}"
         self.notifications.notify(title, body)
-        self.log(f"通知: {title} / {body}")
+        self.log(t("log.alert", title=title, body=body))
 
     def _notify_plan_overrun(self, u: PlanUsage, key: str, label: str, val: float):
-        title = f"🚨 {label}の上限に到達しました"
-        body = f"現在 {val:.0f}% (100%超過)"
+        title = t("notify.overrun_title", label=label)
+        body = t("notify.current_over", val=val)
         reset = self._reset_line(u, key)
         if reset:
             body += f"  |  {reset}"
         self.notifications.notify(title, body)
-        self.log(f"通知: {title} / {body}")
+        self.log(t("log.alert", title=title, body=body))
 
     # ---- periodic ----
 
@@ -193,13 +196,13 @@ class ClaudeUsageNotifierApp:
         def fmt(v):
             return f"{v:.0f}%" if v >= 0 else "-"
 
-        title = "📊 Claude 利用量 定期通知"
-        body = f"5時間: {fmt(u.five_hour)}  |  7日間: {fmt(u.seven_day)}"
-        muted = [label for (k, label) in PLAN_KEYS if self.plan_alert_states[k].silenced_until_reset]
+        title = t("notify.periodic_title")
+        body = t("notify.body", five=fmt(u.five_hour), seven=fmt(u.seven_day))
+        muted = [t(f"plan.{k}") for k in PLAN_KEYS if self.plan_alert_states[k].silenced_until_reset]
         if muted:
-            body += f"\nミュート中: {', '.join(muted)}"
+            body += "\n" + t("notify.muted_list", labels=", ".join(muted))
         self.notifications.notify(title, body, silent=True)
-        self.log(f"定期通知: {body}")
+        self.log(t("log.periodic", body=body))
 
     # ---- tray callbacks ----
 
@@ -216,8 +219,8 @@ class ClaudeUsageNotifierApp:
         def fmt(v):
             return f"{v:.0f}%" if v >= 0 else "-"
 
-        title = "📊 Claude 現在の利用量"
-        body = f"5時間: {fmt(u.five_hour)}  |  7日間: {fmt(u.seven_day)}"
+        title = t("notify.current_title")
+        body = t("notify.body", five=fmt(u.five_hour), seven=fmt(u.seven_day))
         self.notifications.notify(title, body, silent=True)
 
     def refresh_plan_now(self, icon, item):
@@ -229,12 +232,31 @@ class ClaudeUsageNotifierApp:
         try:
             self.config.save()
         except Exception as e:
-            self.log(f"設定保存失敗: {e}")
-        label = {0: "オフ", 30: "30分ごと", 60: "1時間ごと"}.get(minutes, str(minutes))
-        self.log(f"定期通知を {label} に変更しました。")
+            self.log(t("log.config_save_failed", err=e))
+        label_map = {0: "periodic.off", 30: "periodic.30min", 60: "periodic.60min"}
+        label = t(label_map[minutes]) if minutes in label_map else str(minutes)
+        self.log(t("log.periodic_changed", label=label))
         if self.icon is not None:
             try:
                 self.icon.update_menu()
+            except Exception:
+                pass
+
+    def set_language(self, lang: str):
+        if lang not in ("auto", "en", "ja") or lang == self.config.language:
+            return
+        self.config.language = lang
+        try:
+            self.config.save()
+        except Exception as e:
+            self.log(t("log.config_save_failed", err=e))
+        set_language(lang)
+        label = {"auto": t("menu.lang_auto"), "en": "English", "ja": "日本語"}[lang]
+        self.log(t("log.language_changed", label=label))
+        if self.icon is not None:
+            try:
+                self.icon.update_menu()
+                self.icon.title = self._tooltip()
             except Exception:
                 pass
 
@@ -247,7 +269,7 @@ class ClaudeUsageNotifierApp:
         if not state:
             return
         state.silenced_until_reset = not state.silenced_until_reset
-        self.log(f"{label}: {'リセットまで通知ミュート' if state.silenced_until_reset else 'ミュート解除'}")
+        self.log(t("log.mute_on" if state.silenced_until_reset else "log.mute_off", label=label))
         if self.icon is not None:
             try:
                 self.icon.update_menu()
@@ -271,7 +293,7 @@ class ClaudeUsageNotifierApp:
 
     def _save_usage_csv_dialog(self):
         if not USAGE_CSV_PATH.exists():
-            self.log("CSV 保存: usage.csv がまだ存在しません。")
+            self.log(t("log.csv_not_yet"))
             return
         import shutil
         import tkinter as tk
@@ -281,13 +303,19 @@ class ClaudeUsageNotifierApp:
         root.withdraw()
         root.attributes("-topmost", True)
         try:
-            default_name = f"claude_usage_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+            default_name = t(
+                "dialog.csv_default_name",
+                date=datetime.now().strftime("%Y%m%d_%H%M"),
+            )
             dest = filedialog.asksaveasfilename(
                 parent=root,
-                title="使用率CSVを保存",
+                title=t("dialog.save_csv_title"),
                 defaultextension=".csv",
                 initialfile=default_name,
-                filetypes=[("CSV", "*.csv"), ("All files", "*.*")],
+                filetypes=[
+                    (t("dialog.csv_filetype"), "*.csv"),
+                    (t("dialog.all_filetypes"), "*.*"),
+                ],
             )
         finally:
             root.destroy()
@@ -296,9 +324,9 @@ class ClaudeUsageNotifierApp:
             return
         try:
             shutil.copy2(USAGE_CSV_PATH, dest)
-            self.log(f"CSV を {dest} に保存しました。")
+            self.log(t("log.csv_saved", dest=dest))
         except Exception as e:
-            self.log(f"CSV 保存失敗: {e}")
+            self.log(t("log.csv_save_failed", err=e))
 
     def quit(self, icon, item):
         self._stop_event.set()
@@ -310,6 +338,6 @@ class ClaudeUsageNotifierApp:
 
 def main():
     if sys.platform not in ("win32", "darwin"):
-        print("Unsupported platform. Windows / macOS only.")
+        print(t("error.unsupported_platform"))
         return
     ClaudeUsageNotifierApp().run()

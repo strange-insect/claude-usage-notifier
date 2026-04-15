@@ -2,6 +2,7 @@ import pystray
 from PIL import Image, ImageDraw
 
 from .constants import PLAN_KEYS
+from .i18n import t
 
 CLAUDE_CORAL = (217, 119, 87, 255)
 TRACK_COLOR = (55, 55, 65, 255)
@@ -34,28 +35,43 @@ def make_tray_image(usage_pct: float = -1.0) -> Image.Image:
 
 
 def _periodic_menu(app) -> pystray.Menu:
-    def make(minutes: int, text: str):
+    def make(minutes: int, key: str):
         return pystray.MenuItem(
-            text,
+            lambda _it: t(key),
             lambda _i, _it: app.set_periodic_interval(minutes),
             checked=lambda _it, m=minutes: app.config.periodic_notification_minutes == m,
             radio=True,
         )
     return pystray.Menu(
-        make(0, "オフ"),
-        make(30, "30分ごと"),
-        make(60, "1時間ごと"),
+        make(0, "periodic.off"),
+        make(30, "periodic.30min"),
+        make(60, "periodic.60min"),
     )
 
 
 def _mute_menu(app) -> pystray.Menu:
-    def make(key: str, label: str):
+    def make(key: str):
         def action(_icon, _item):
-            app.toggle_plan_mute(key, label)
+            app.toggle_plan_mute(key, t(f"plan.{key}"))
         def checked(_item):
             return app.is_plan_muted(key)
-        return pystray.MenuItem(label, action, checked=checked)
-    return pystray.Menu(*[make(k, l) for k, l in PLAN_KEYS])
+        return pystray.MenuItem(lambda _it, k=key: t(f"plan.{k}"), action, checked=checked)
+    return pystray.Menu(*[make(k) for k in PLAN_KEYS])
+
+
+def _language_menu(app) -> pystray.Menu:
+    def make(code: str, label):
+        return pystray.MenuItem(
+            label,
+            lambda _i, _it: app.set_language(code),
+            checked=lambda _it, c=code: app.config.language == c,
+            radio=True,
+        )
+    return pystray.Menu(
+        make("auto", lambda _it: t("menu.lang_auto")),
+        make("en", "English"),
+        make("ja", "日本語"),
+    )
 
 
 def build_icon(app) -> pystray.Icon:
@@ -65,16 +81,17 @@ def build_icon(app) -> pystray.Icon:
         pystray.MenuItem(app.menu_plan_label("five_hour", "5h"), None, enabled=False),
         pystray.MenuItem(app.menu_plan_label("seven_day", "7d"), None, enabled=False),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("今すぐ更新", app.refresh_plan_now),
-        pystray.MenuItem("現在の使用量を通知", app.show_current_usage),
-        pystray.MenuItem("定期通知", _periodic_menu(app)),
-        pystray.MenuItem("次のリセットまでミュート", _mute_menu(app)),
+        pystray.MenuItem(lambda _it: t("menu.refresh_now"), app.refresh_plan_now),
+        pystray.MenuItem(lambda _it: t("menu.notify_current"), app.show_current_usage),
+        pystray.MenuItem(lambda _it: t("menu.periodic"), _periodic_menu(app)),
+        pystray.MenuItem(lambda _it: t("menu.mute_until_reset"), _mute_menu(app)),
+        pystray.MenuItem(lambda _it: t("menu.language"), _language_menu(app)),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("設定ファイルを開く", app.open_config),
-        pystray.MenuItem("ログを開く", app.open_log),
-        pystray.MenuItem("使用率CSVを保存...", app.save_usage_csv),
+        pystray.MenuItem(lambda _it: t("menu.open_config"), app.open_config),
+        pystray.MenuItem(lambda _it: t("menu.open_log"), app.open_log),
+        pystray.MenuItem(lambda _it: t("menu.save_csv"), app.save_usage_csv),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("終了", app.quit),
+        pystray.MenuItem(lambda _it: t("menu.quit"), app.quit),
     )
     return pystray.Icon(
         "claude_usage_notifier",

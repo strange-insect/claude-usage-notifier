@@ -23,7 +23,10 @@ def open_path(path: Path) -> None:
     """OS 標準のアプリでファイル/ディレクトリを開く。"""
     path = str(path)
     if IS_WINDOWS:
-        os.startfile(path)  # noqa: S606
+        try:
+            os.startfile(path)  # noqa: S606
+        except OSError:
+            subprocess.Popen(["notepad.exe", path])
     elif IS_MACOS:
         subprocess.Popen(["open", path])
     else:

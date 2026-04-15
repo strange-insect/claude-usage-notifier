@@ -1,4 +1,4 @@
-# Claude Usage Notifier をビルドしてスタートアップに登録する
+# Build Claude Usage Notifier and register it to run at Windows startup.
 param(
     [switch]$Unregister
 )
@@ -11,24 +11,24 @@ $ShortcutPath = Join-Path $StartupDir "ClaudeUsageNotifier.lnk"
 if ($Unregister) {
     if (Test-Path $ShortcutPath) {
         Remove-Item $ShortcutPath -Force
-        Write-Host "スタートアップ登録を解除しました。"
+        Write-Host "Unregistered from startup."
     } else {
-        Write-Host "登録されていません。"
+        Write-Host "Not registered."
     }
     exit 0
 }
 
-# venv を用意
+# Prepare venv
 $VenvDir    = Join-Path $ScriptDir ".venv"
 $VenvPython = Join-Path $VenvDir "Scripts\python.exe"
 if (-not (Test-Path $VenvPython)) {
-    Write-Host "venv を作成します: $VenvDir"
+    Write-Host "Creating venv: $VenvDir"
     python -m venv $VenvDir
 }
 
-# PyInstaller でビルド
+# Build with PyInstaller
 if (-not (Test-Path $ExePath)) {
-    Write-Host "exe が見つかりません。PyInstaller でビルドします..."
+    Write-Host "exe not found. Building with PyInstaller..."
     & $VenvPython -m pip install --quiet -r (Join-Path $ScriptDir "requirements.txt")
     & $VenvPython -m pip install --quiet pyinstaller
     & $VenvPython -m PyInstaller --noconfirm --onefile --windowed `
@@ -36,15 +36,15 @@ if (-not (Test-Path $ExePath)) {
         --paths (Join-Path $ScriptDir "src") `
         (Join-Path $ScriptDir "src\claude_usage_notifier.py")
     if (-not (Test-Path $ExePath)) {
-        Write-Error "ビルド失敗。dist\claude_usage_notifier.exe が見つかりません。"
+        Write-Error "Build failed. dist\claude_usage_notifier.exe not found."
         exit 1
     }
-    Write-Host "ビルド完了: $ExePath"
+    Write-Host "Build complete: $ExePath"
 } else {
-    Write-Host "既存の exe を使用します: $ExePath"
+    Write-Host "Using existing exe: $ExePath"
 }
 
-# スタートアップにショートカット作成
+# Create shortcut in Startup folder
 $WshShell  = New-Object -ComObject WScript.Shell
 $Shortcut  = $WshShell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath     = $ExePath
@@ -52,5 +52,10 @@ $Shortcut.WorkingDirectory = $ScriptDir
 $Shortcut.WindowStyle    = 1
 $Shortcut.Save()
 
-Write-Host "スタートアップに登録しました: $ShortcutPath"
-Write-Host "次回ログイン時から自動起動します。今すぐ起動する場合は Start-Process '$ExePath'"
+Write-Host "Registered to startup: $ShortcutPath"
+
+# Stop any existing process, then launch
+Get-Process -Name "claude_usage_notifier" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Process -FilePath $ExePath -WorkingDirectory $ScriptDir
+Write-Host "Launched: $ExePath"
+Write-Host "It will also auto-start on next login."

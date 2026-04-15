@@ -20,8 +20,5 @@ CREDENTIALS_PATHS = [
     Path.home() / "Library" / "Application Support" / "Claude" / ".credentials.json",
 ]
 
-PLAN_KEYS = [
-    ("five_hour", "5時間枠"),
-    ("seven_day", "7日間"),
-]
+PLAN_KEYS = ["five_hour", "seven_day"]
 OVERRUN_REPEAT_SECONDS = 300

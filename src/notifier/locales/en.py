@@ -1,0 +1,52 @@
+STRINGS = {
+    "plan.five_hour": "5-hour",
+    "plan.seven_day": "7-day",
+
+    "menu.refresh_now": "Check now",
+    "menu.notify_current": "Notify current usage",
+    "menu.periodic": "Periodic notification",
+    "menu.mute_until_reset": "Mute until next reset",
+    "menu.language": "Language",
+    "menu.lang_auto": "Auto (system)",
+    "menu.open_config": "Open config file",
+    "menu.open_log": "Open log",
+    "menu.save_csv": "Save usage CSV...",
+    "menu.quit": "Quit",
+
+    "periodic.off": "Off",
+    "periodic.30min": "Every 30 min",
+    "periodic.60min": "Every hour",
+
+    "notify.threshold_title": "\u26a0\ufe0f {label} usage exceeded {level}%",
+    "notify.overrun_title": "\U0001f6a8 {label} limit reached",
+    "notify.current": "Currently {val:.0f}%",
+    "notify.current_over": "Currently {val:.0f}% (over 100%)",
+    "notify.reset": "Reset: {local}",
+    "notify.periodic_title": "\U0001f4ca Claude Usage \u2014 Periodic",
+    "notify.current_title": "\U0001f4ca Claude Current Usage",
+    "notify.body": "5h: {five}  |  7d: {seven}",
+    "notify.muted_list": "Muted: {labels}",
+
+    "tooltip.error": "Fetch failed: {error}",
+
+    "log.app_started": "App started.",
+    "log.csv_write_failed": "CSV write failed: {err}",
+    "log.alert": "Notify: {title} / {body}",
+    "log.periodic": "Periodic notify: {body}",
+    "log.config_save_failed": "Failed to save config: {err}",
+    "log.periodic_changed": "Periodic notification set to {label}.",
+    "log.language_changed": "Language changed to {label}.",
+    "log.mute_on": "{label}: muted until reset",
+    "log.mute_off": "{label}: unmuted",
+    "log.usage_reset": "{label}: usage reset detected, clearing alert state",
+    "log.csv_not_yet": "Save CSV: usage.csv does not exist yet.",
+    "log.csv_saved": "Saved CSV to {dest}.",
+    "log.csv_save_failed": "CSV save failed: {err}",
+
+    "dialog.save_csv_title": "Save usage CSV",
+    "dialog.csv_default_name": "claude_usage_{date}.csv",
+    "dialog.csv_filetype": "CSV",
+    "dialog.all_filetypes": "All files",
+
+    "error.unsupported_platform": "Unsupported platform. Windows / macOS only.",
+}

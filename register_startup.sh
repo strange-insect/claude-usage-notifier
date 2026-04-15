@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Usage Notifier を launchd のユーザーエージェントとして登録する (macOS)
+# Register Claude Usage Notifier as a launchd user agent (macOS).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -10,7 +10,7 @@ APP_SUPPORT_DIR="$HOME/Library/Application Support/ClaudeUsageNotifier"
 if [[ "${1:-}" == "-u" || "${1:-}" == "--unregister" ]]; then
     launchctl bootout "gui/$(id -u)/$PLIST_LABEL" 2>/dev/null || launchctl unload "$PLIST_PATH" 2>/dev/null || true
     rm -f "$PLIST_PATH"
-    echo "スタートアップ登録を解除しました: $PLIST_PATH"
+    echo "Unregistered from startup: $PLIST_PATH"
     exit 0
 fi
 
@@ -18,7 +18,7 @@ VENV="$SCRIPT_DIR/.venv"
 VENV_PY="$VENV/bin/python"
 
 if [[ ! -x "$VENV_PY" ]]; then
-    echo "venv を作成します: $VENV"
+    echo "Creating venv: $VENV"
     python3 -m venv "$VENV"
     "$VENV_PY" -m pip install --quiet --upgrade pip
     "$VENV_PY" -m pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
@@ -61,6 +61,6 @@ launchctl bootout "gui/$(id -u)/$PLIST_LABEL" 2>/dev/null || launchctl unload "$
 launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
 launchctl kickstart -k "gui/$(id -u)/$PLIST_LABEL"
 
-echo "スタートアップに登録しました: $PLIST_PATH"
-echo "次回ログイン時から自動起動します。すぐに確認したい場合はトレイアイコンを確認してください。"
-echo "解除は: $0 --unregister"
+echo "Registered to startup: $PLIST_PATH"
+echo "Launched now; will also auto-start on next login. Check the tray icon."
+echo "To unregister: $0 --unregister"

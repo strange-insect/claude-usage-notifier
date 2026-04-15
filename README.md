@@ -9,6 +9,7 @@ A tray-resident app for Windows / macOS that monitors Claude Code Pro/Max plan u
 - Toast notifications at 80% / 90% / 100%; while over 100%, re-notifies every 5 minutes
 - Periodic notifications (every 30 min / every hour / off) switchable from the tray menu
 - Usage is appended to a CSV so you can graph it later
+- **English / Japanese UI** — defaults to English, auto-detects Japanese system locale, or set explicitly in `config.json`
 
 No window is opened. All interactions are via the tray icon's right-click menu.
 
@@ -135,7 +136,7 @@ The coral center is for app identification (Claude color).
 ### Right-click menu
 
 - `5h: XX%` / `7d: XX%` (shows the latest values; not clickable)
-- **Refresh now** — manually re-fetch usage
+- **Check now** — manually re-fetch usage
 - **Notify current usage** — toast the current values (silent)
 - **Periodic** — Off / Every 30 min / Every hour
 - **Mute until next reset** — toggle per window (5-hour / 7-day); auto-unmutes at next reset
@@ -149,7 +150,7 @@ Everything lives under the config directory (Windows: `%APPDATA%\ClaudeUsageNoti
 
 | File | Content |
 |---|---|
-| `config.json` | Settings such as periodic notification interval |
+| `config.json` | Settings: periodic notification interval, UI language |
 | `app.log` | Text log of startup / notifications / errors (append-only, no rotation) |
 | `usage.csv` | Usage history per poll (see below) |
 | `app_icon.png` | App icon used in toast notifications |
@@ -168,6 +169,25 @@ One row appended per successful poll. Columns:
 
 With 60-second polling that's about 1440 rows/day (~80 KB). Opens directly in Excel / pandas. If size becomes a concern, archive manually (no rotation).
 
+## Language (UI)
+
+The tray menu, notifications, and log messages are localized. `config.json`:
+
+```json
+{
+  "periodic_notification_minutes": 30,
+  "language": "auto"
+}
+```
+
+| Value | Behavior |
+|---|---|
+| `"auto"` | Auto-detect from system locale (Japanese system → `ja`, otherwise `en`) |
+| `"en"` | English (default) |
+| `"ja"` | Japanese |
+
+Edit and restart the app to apply. Add a new language by dropping a `STRINGS` dict in `src/notifier/locales/<code>.py` and registering it in `src/notifier/i18n.py`.
+
 ## Project structure
 
 ```
@@ -177,6 +197,8 @@ src/
     app.py                      # main app (resident loop, notification decisions)
     config.py                   # config load/save
     constants.py                # constants (plan definitions, etc.)
+    i18n.py                     # translation lookup (t / set_language)
+    locales/                    # translation resource files (en.py, ja.py)
     notifications.py            # notification manager (delegates to backend)
     platform_integration.py     # OS-dependent code (notification backend, paths, file open)
     plan_usage.py               # Usage API polling
