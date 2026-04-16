@@ -168,26 +168,36 @@ class ClaudeUsageNotifierApp:
 
     # ---- periodic ----
 
+    def _next_periodic_target(self, now: datetime, interval: int) -> datetime:
+        if interval == 30:
+            if now.minute < 30:
+                return now.replace(minute=30, second=0, microsecond=0)
+            else:
+                return (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+        else:
+            return (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+
     def _hourly_scheduler(self):
+        _TICK = 15  # check clock every 15 seconds to handle sleep/wake
+        target = None
         while not self._stop_event.is_set():
             interval = self.config.periodic_notification_minutes
             if interval == 0:
+                target = None
                 if self._stop_event.wait(60):
                     return
                 continue
             now = datetime.now()
-            if interval == 30:
-                if now.minute < 30:
-                    target = now.replace(minute=30, second=0, microsecond=0)
-                else:
-                    target = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-            else:
-                target = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-            delay = max(1.0, (target - now).total_seconds())
-            if self._stop_event.wait(delay):
-                return
-            if self.config.periodic_notification_minutes != 0:
+            if target is None or now >= target + timedelta(minutes=interval):
+                # first run or overslept past an entire cycle — recalculate
+                target = self._next_periodic_target(now, interval)
+            if now >= target:
                 self._send_periodic_notification()
+                target = self._next_periodic_target(now, interval)
+                continue
+            wait = min(_TICK, max(1.0, (target - now).total_seconds()))
+            if self._stop_event.wait(wait):
+                return
 
     def _send_periodic_notification(self):
         u = self.plan_usage
