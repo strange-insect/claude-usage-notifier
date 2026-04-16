@@ -1,5 +1,7 @@
 # Claude Usage Notifier
 
+<!-- version-badge -->**Version 0.0.1**<!-- /version-badge -->
+
 [English README here](README.md)
 
 Windows / macOS のメニューバー（トレイ）に常駐し、Claude Code の Pro/Max プラン使用量をモニタリングしてトースト通知を出す常駐アプリです。

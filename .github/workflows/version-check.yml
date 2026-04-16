@@ -1,0 +1,47 @@
+name: Version bump check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from PR branch
+        id: pr
+        run: |
+          ver=$(sed -n 's/^__version__\s*=\s*"\([^"]*\)"/\1/p' src/notifier/__init__.py)
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Get version from main branch
+        id: main
+        run: |
+          ver=$(git show origin/main:src/notifier/__init__.py | sed -n 's/^__version__\s*=\s*"\([^"]*\)"/\1/p')
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Compare versions
+        run: |
+          PR_VER="${{ steps.pr.outputs.version }}"
+          MAIN_VER="${{ steps.main.outputs.version }}"
+
+          echo "main: v${MAIN_VER}"
+          echo "PR:   v${PR_VER}"
+
+          if [ -z "$PR_VER" ]; then
+            echo "::error::Could not read __version__ from src/notifier/__init__.py"
+            exit 1
+          fi
+
+          # Sort with version-sort; if main comes after or equal, PR did not bump
+          HIGHER=$(printf '%s\n%s' "$MAIN_VER" "$PR_VER" | sort -V | tail -n1)
+          if [ "$HIGHER" = "$MAIN_VER" ]; then
+            echo "::error::Version not bumped. Please update __version__ in src/notifier/__init__.py (current main: v${MAIN_VER})"
+            exit 1
+          fi
+
+          echo "Version bump confirmed: v${MAIN_VER} -> v${PR_VER}"

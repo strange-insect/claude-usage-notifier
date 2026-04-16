@@ -1,5 +1,7 @@
 # Claude Usage Notifier
 
+<!-- version-badge -->**Version 0.0.1**<!-- /version-badge -->
+
 [日本語版 README はこちら / Japanese README](README.ja.md)
 
 A tray-resident app for Windows / macOS that monitors Claude Code Pro/Max plan usage and shows toast notifications.

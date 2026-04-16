@@ -8,8 +8,19 @@ param(
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+function Get-AppVersion {
+    $initFile = Join-Path $ScriptDir "src\notifier\__init__.py"
+    if (Test-Path $initFile) {
+        $match = Select-String -Path $initFile -Pattern '__version__\s*=\s*"([^"]+)"'
+        if ($match) { return $match.Matches.Groups[1].Value }
+    }
+    return $null
+}
+
 Push-Location $ScriptDir
 try {
+    $versionBefore = Get-AppVersion
+
     # Stop running process
     $proc = Get-Process -Name "claude_usage_notifier" -ErrorAction SilentlyContinue
     if ($proc) {
@@ -43,6 +54,12 @@ try {
         & (Join-Path $ScriptDir "register_startup.ps1")
     }
 
+    $versionAfter = Get-AppVersion
+    if ($versionBefore -and $versionAfter -and $versionBefore -ne $versionAfter) {
+        Write-Host "Updated: v$versionBefore -> v$versionAfter"
+    } elseif ($versionAfter) {
+        Write-Host "Version: v$versionAfter"
+    }
     Write-Host "Update complete."
 } finally {
     Pop-Location
