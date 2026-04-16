@@ -75,6 +75,7 @@ def _language_menu(app) -> pystray.Menu:
 
 
 def build_icon(app) -> pystray.Icon:
+    from . import __version__
     from .constants import APP_NAME
 
     menu = pystray.Menu(
@@ -91,6 +92,7 @@ def build_icon(app) -> pystray.Icon:
         pystray.MenuItem(lambda _it: t("menu.open_log"), app.open_log),
         pystray.MenuItem(lambda _it: t("menu.save_csv"), app.save_usage_csv),
         pystray.Menu.SEPARATOR,
+        pystray.MenuItem(f"v{__version__}", None, enabled=False),
         pystray.MenuItem(lambda _it: t("menu.quit"), app.quit),
     )
     return pystray.Icon(

@@ -62,7 +62,8 @@ class ClaudeUsageNotifierApp:
         self.plan_poller.poll_now()
 
     def run(self):
-        self.log(t("log.app_started"))
+        from . import __version__
+        self.log(t("log.app_started_ver", version=__version__))
         self._start_plan_poller()
         threading.Thread(target=self._hourly_scheduler, daemon=True).start()
         self.icon = build_icon(self)

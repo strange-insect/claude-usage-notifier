@@ -30,6 +30,7 @@ STRINGS = {
     "tooltip.error": "Fetch failed: {error}",
 
     "log.app_started": "App started.",
+    "log.app_started_ver": "App started. (v{version})",
     "log.csv_write_failed": "CSV write failed: {err}",
     "log.alert": "Notify: {title} / {body}",
     "log.periodic": "Periodic notify: {body}",

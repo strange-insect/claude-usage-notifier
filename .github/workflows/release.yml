@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read version
+        id: ver
+        run: |
+          ver=$(sed -n 's/^__version__\s*=\s*"\([^"]*\)"/\1/p' src/notifier/__init__.py)
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "tag=v$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag already exists
+        id: tag_check
+        run: |
+          TAG="v${{ steps.ver.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync README versions
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+
+          # Replace version between marker comments in READMEs
+          sed -i "s/<!-- version-badge -->.*<!-- \/version-badge -->/<!-- version-badge -->**Version ${VER}**<!-- \/version-badge -->/" README.md
+          sed -i "s/<!-- version-badge -->.*<!-- \/version-badge -->/<!-- version-badge -->**Version ${VER}**<!-- \/version-badge -->/" README.ja.md
+
+          if git diff --quiet; then
+            echo "READMEs already in sync."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md README.ja.md
+            git commit -m "Sync README version to v${VER}"
+            git push
+          fi
+
+      - name: Create tag
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Generate release notes
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+
+          # Find previous tag
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${TAG}$" | head -n1)
+
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..${TAG}"
+            COMPARE="**Full Changelog**: [\`${PREV_TAG}...${TAG}\`](https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG})"
+          else
+            RANGE="$TAG"
+            COMPARE="**Initial release**"
+          fi
+
+          # Build changelog from merge commits / regular commits
+          {
+            echo "## What's Changed"
+            echo ""
+            git log "$RANGE" --pretty=format:"- %s" --no-merges \
+              | grep -v "^- Sync README version" \
+              | grep -v "^- Co-Authored-By:" \
+              || true
+            echo ""
+            echo ""
+            echo "$COMPARE"
+          } > release_notes.md
+
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        if: steps.tag_check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file release_notes.md

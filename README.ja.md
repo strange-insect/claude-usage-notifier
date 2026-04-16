@@ -1,5 +1,7 @@
 # Claude Usage Notifier
 
+<!-- version-badge -->**Version 0.0.1**<!-- /version-badge -->
+
 [English README here](README.md)
 
 Windows / macOS のメニューバー（トレイ）に常駐し、Claude Code の Pro/Max プラン使用量をモニタリングしてトースト通知を出す常駐アプリです。
@@ -100,6 +102,36 @@ chmod +x register_startup.sh
 ```
 
 launchd の標準出力・エラーは `~/Library/Application Support/ClaudeUsageNotifier/launchd.{out,err}.log` に出ます。
+
+## バージョンアップ（更新）
+
+**Windows (PowerShell):**
+
+```powershell
+.\update.ps1
+```
+
+**macOS (bash/zsh):**
+
+```bash
+./update.sh
+```
+
+最新ソースの取得、依存パッケージの更新、再ビルド（Windows: exe）、アプリの再起動をまとめて行います。Windows では実行中のプロセスを自動で停止してから再ビルドします。
+
+| フラグ | Windows | macOS | 効果 |
+|---|---|---|---|
+| ローカルインストール | `-Local` | `--local` / `-l` | `git pull` をスキップし、現在の作業ツリーからビルド |
+| 開発モード | `-Dev` | `--dev` / `-d` | exe ビルド・スタートアップ登録をスキップ（venv 更新のみ） |
+
+フラグは併用可。使用例:
+
+```powershell
+.\update.ps1 -Local          # Windows: ローカルソースからビルド＆インストール
+./update.sh --local           # macOS: 同上
+.\update.ps1 -Local -Dev     # Windows: git pull なし、venv 更新のみ
+./update.sh --local --dev     # macOS: 同上
+```
 
 ## 通知ルール
 
@@ -207,6 +239,8 @@ src/
     utils.py                    # 小物
 register_startup.ps1            # Windows: PyInstaller ビルド＆スタートアップ登録
 register_startup.sh             # macOS: launchd LaunchAgent 登録
+update.ps1                      # Windows: ワンコマンド更新（pull・再ビルド・再起動）
+update.sh                       # macOS: ワンコマンド更新（pull・依存更新・再起動）
 requirements.txt                # sys_platform で OS 依存パッケージを分岐
 ```
 

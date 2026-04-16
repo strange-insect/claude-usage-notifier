@@ -31,6 +31,7 @@ STRINGS = {
     "tooltip.error": "取得失敗: {error}",
 
     "log.app_started": "アプリを起動しました。",
+    "log.app_started_ver": "アプリを起動しました。(v{version})",
     "log.csv_write_failed": "CSV 書き込み失敗: {err}",
     "log.alert": "通知: {title} / {body}",
     "log.periodic": "定期通知: {body}",
