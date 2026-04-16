@@ -27,22 +27,18 @@ if (-not (Test-Path $VenvPython)) {
 }
 
 # Build with PyInstaller
+Write-Host "Building with PyInstaller..."
+& $VenvPython -m pip install --quiet -r (Join-Path $ScriptDir "requirements.txt")
+& $VenvPython -m pip install --quiet pyinstaller
+& $VenvPython -m PyInstaller --noconfirm --onefile --windowed `
+    --name claude_usage_notifier `
+    --paths (Join-Path $ScriptDir "src") `
+    (Join-Path $ScriptDir "src\claude_usage_notifier.py")
 if (-not (Test-Path $ExePath)) {
-    Write-Host "exe not found. Building with PyInstaller..."
-    & $VenvPython -m pip install --quiet -r (Join-Path $ScriptDir "requirements.txt")
-    & $VenvPython -m pip install --quiet pyinstaller
-    & $VenvPython -m PyInstaller --noconfirm --onefile --windowed `
-        --name claude_usage_notifier `
-        --paths (Join-Path $ScriptDir "src") `
-        (Join-Path $ScriptDir "src\claude_usage_notifier.py")
-    if (-not (Test-Path $ExePath)) {
-        Write-Error "Build failed. dist\claude_usage_notifier.exe not found."
-        exit 1
-    }
-    Write-Host "Build complete: $ExePath"
-} else {
-    Write-Host "Using existing exe: $ExePath"
+    Write-Error "Build failed. dist\claude_usage_notifier.exe not found."
+    exit 1
 }
+Write-Host "Build complete: $ExePath"
 
 # Create shortcut in Startup folder
 $WshShell  = New-Object -ComObject WScript.Shell

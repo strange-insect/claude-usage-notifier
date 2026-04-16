@@ -101,6 +101,36 @@ Remove:
 
 launchd stdout / stderr go to `~/Library/Application Support/ClaudeUsageNotifier/launchd.{out,err}.log`.
 
+## Updating
+
+**Windows (PowerShell):**
+
+```powershell
+.\update.ps1
+```
+
+**macOS (bash/zsh):**
+
+```bash
+./update.sh
+```
+
+This pulls the latest source, updates dependencies, rebuilds (Windows: exe), and restarts the app. On Windows the running process is stopped automatically before the rebuild.
+
+| Flag | Windows | macOS | Effect |
+|---|---|---|---|
+| Local install | `-Local` | `--local` / `-l` | Skip `git pull`; build from the current working tree |
+| Dev mode | `-Dev` | `--dev` / `-d` | Skip exe build / startup registration (venv update only) |
+
+Flags can be combined. Examples:
+
+```powershell
+.\update.ps1 -Local          # Windows: build & install from local source
+./update.sh --local           # macOS: same
+.\update.ps1 -Local -Dev     # Windows: update venv only, no git pull
+./update.sh --local --dev     # macOS: same
+```
+
 ## Notification rules
 
 | Type | Timing | Sound |
@@ -207,6 +237,8 @@ src/
     utils.py                    # small helpers
 register_startup.ps1            # Windows: PyInstaller build & Startup registration
 register_startup.sh             # macOS: launchd LaunchAgent registration
+update.ps1                      # Windows: one-command update (pull, rebuild, restart)
+update.sh                       # macOS: one-command update (pull, update deps, restart)
 requirements.txt                # branches OS-dependent packages via sys_platform
 ```
 

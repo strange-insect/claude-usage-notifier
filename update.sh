@@ -1,0 +1,44 @@
+#!/bin/bash
+# Update Claude Usage Notifier.
+# Updates dependencies and re-registers startup by default.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+DEV=false
+LOCAL=false
+for arg in "$@"; do
+    case "$arg" in
+        --dev|-d)   DEV=true ;;
+        --local|-l) LOCAL=true ;;
+    esac
+done
+
+if $LOCAL; then
+    echo "Skipping git pull (local mode)."
+else
+    echo "Pulling latest source..."
+    git pull
+fi
+
+VENV_PY="$SCRIPT_DIR/.venv/bin/python"
+
+if [[ ! -x "$VENV_PY" ]]; then
+    echo "Creating venv..."
+    python3 -m venv "$SCRIPT_DIR/.venv"
+fi
+
+echo "Updating dependencies..."
+"$VENV_PY" -m pip install --quiet -r requirements.txt
+
+if $DEV; then
+    echo "Done. Start the app manually:"
+    echo "  python src/claude_usage_notifier.py"
+else
+    # Re-register (restarts the agent automatically)
+    echo "Re-registering startup..."
+    "$SCRIPT_DIR/register_startup.sh"
+fi
+
+echo "Update complete."
