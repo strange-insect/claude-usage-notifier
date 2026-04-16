@@ -64,8 +64,8 @@ git rev-parse "$TAG" >/dev/null 2>&1
 ### Step 4: README バージョン同期
 
 ```bash
-sed -i "s/<!-- version-badge -->.*<!-- \/version-badge -->/<!-- version-badge -->**Version ${VER}**<!-- \/version-badge -->/" README.md
-sed -i "s/<!-- version-badge -->.*<!-- \/version-badge -->/<!-- version-badge -->**Version ${VER}**<!-- \/version-badge -->/" README.ja.md
+sed -i "s|<!-- version-badge -->.*<!-- /version-badge -->|<!-- version-badge --><strong>Version ${VER}</strong><!-- /version-badge -->|" README.md
+sed -i "s|<!-- version-badge -->.*<!-- /version-badge -->|<!-- version-badge --><strong>Version ${VER}</strong><!-- /version-badge -->|" README.ja.md
 ```
 
 README 内の `<!-- version-badge -->...<!-- /version-badge -->` マーカー間を置換する。マーカー外のバージョン言及には影響しない。

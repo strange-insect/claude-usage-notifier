@@ -39,8 +39,8 @@ jobs:
           VER="${{ steps.ver.outputs.version }}"
 
           # Replace version between marker comments in READMEs
-          sed -i "s/<!-- version-badge -->.*<!-- \/version-badge -->/<!-- version-badge -->**Version ${VER}**<!-- \/version-badge -->/" README.md
-          sed -i "s/<!-- version-badge -->.*<!-- \/version-badge -->/<!-- version-badge -->**Version ${VER}**<!-- \/version-badge -->/" README.ja.md
+          sed -i "s|<!-- version-badge -->.*<!-- /version-badge -->|<!-- version-badge --><strong>Version ${VER}</strong><!-- /version-badge -->|" README.md
+          sed -i "s|<!-- version-badge -->.*<!-- /version-badge -->|<!-- version-badge --><strong>Version ${VER}</strong><!-- /version-badge -->|" README.ja.md
 
           if git diff --quiet; then
             echo "READMEs already in sync."

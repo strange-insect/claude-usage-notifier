@@ -26,7 +26,7 @@
 | トレイメニュー（Quit の上） | `v0.0.1` | `__init__.py` を実行時に参照 |
 | 起動ログ | `アプリを起動しました。(v0.0.1)` | 同上 |
 | update スクリプト実行時 | `Version: v0.0.1` / `Updated: v0.0.1 -> v0.2.0` | `__init__.py` を sed で読み取り |
-| README 冒頭 | `**Version 0.0.1**` | マーカーコメント内 |
+| README 冒頭 | `<strong>Version 0.0.1</strong>` | マーカーコメント内 |
 
 ## リリース手順
 
@@ -71,7 +71,7 @@ __version__ = "0.2.0"  →  __version__ = "1.0.0"
 README 内のバージョン表記は HTML コメントで囲まれている:
 
 ```markdown
-<!-- version-badge -->**Version 0.0.1**<!-- /version-badge -->
+<!-- version-badge --><strong>Version 0.0.1</strong><!-- /version-badge -->
 ```
 
 - `release.yml` はこのマーカー間のみを置換する
