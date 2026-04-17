@@ -115,15 +115,32 @@ class ClaudeUsageNotifierApp:
             resets_at = getattr(u, f"{key}_resets_at", "")
             state = self.plan_alert_states[key]
 
-            if resets_at and resets_at != state.last_resets_at:
-                if state.last_resets_at:
-                    self.log(t("log.usage_reset", label=label))
-                state.crossed_80 = False
-                state.crossed_90 = False
-                state.crossed_100 = False
-                state.silenced_until_reset = False
-                state.last_overrun_notify_ts = 0.0
-                state.last_resets_at = resets_at
+            # Reset detection: compare the previously-stored expected reset
+            # time against wall-clock now. Comparing against the new resets_at
+            # string would false-positive on sub-second drift returned by the API.
+            if state.last_resets_at:
+                try:
+                    prev_dt = datetime.fromisoformat(state.last_resets_at)
+                    if prev_dt <= datetime.now(prev_dt.tzinfo):
+                        self.log(t("log.usage_reset", label=label))
+                        state.crossed_80 = False
+                        state.crossed_90 = False
+                        state.crossed_100 = False
+                        state.silenced_until_reset = False
+                        state.last_overrun_notify_ts = 0.0
+                        state.last_resets_at = ""
+                except Exception:
+                    pass
+
+            # Only future values become the next baseline; past values are
+            # ignored so a stale API response can't trigger repeated detections.
+            if resets_at:
+                try:
+                    new_dt = datetime.fromisoformat(resets_at)
+                    if new_dt > datetime.now(new_dt.tzinfo):
+                        state.last_resets_at = resets_at
+                except Exception:
+                    pass
 
             if state.silenced_until_reset:
                 continue
