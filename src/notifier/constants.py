@@ -10,7 +10,7 @@ CONFIG_PATH = CONFIG_DIR / "config.json"
 LOG_PATH = CONFIG_DIR / "app.log"
 
 OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
-OAUTH_USAGE_INTERVAL = 60
+OAUTH_USAGE_INTERVAL = 300
 
 CREDENTIALS_PATHS = [
     Path(os.environ.get("APPDATA", "")) / "Claude" / ".credentials.json",
