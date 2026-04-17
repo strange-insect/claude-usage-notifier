@@ -123,11 +123,9 @@ class ClaudeUsageNotifierApp:
                     prev_dt = datetime.fromisoformat(state.last_resets_at)
                     if prev_dt <= datetime.now(prev_dt.tzinfo):
                         self.log(t("log.usage_reset", label=label))
-                        state.crossed_80 = False
-                        state.crossed_90 = False
-                        state.crossed_100 = False
                         state.silenced_until_reset = False
                         state.last_overrun_notify_ts = 0.0
+                        state.last_value = 0.0
                         state.last_resets_at = ""
                 except Exception:
                     pass
@@ -142,21 +140,18 @@ class ClaudeUsageNotifierApp:
                 except Exception:
                     pass
 
+            prev_val = state.last_value
+            state.last_value = val
+
             if state.silenced_until_reset:
                 continue
 
-            if val >= 80 and not state.crossed_80:
-                state.crossed_80 = True
+            if prev_val < 80 <= val:
                 self._notify_plan_threshold(u, key, label, val, 80)
-            if val >= 90 and not state.crossed_90:
-                state.crossed_90 = True
+            if prev_val < 90 <= val:
                 self._notify_plan_threshold(u, key, label, val, 90)
             if val >= 100:
-                if not state.crossed_100:
-                    state.crossed_100 = True
-                    state.last_overrun_notify_ts = now
-                    self._notify_plan_overrun(u, key, label, val)
-                elif now - state.last_overrun_notify_ts >= OVERRUN_REPEAT_SECONDS:
+                if prev_val < 100 or now - state.last_overrun_notify_ts >= OVERRUN_REPEAT_SECONDS:
                     state.last_overrun_notify_ts = now
                     self._notify_plan_overrun(u, key, label, val)
 
