@@ -115,31 +115,43 @@ class ClaudeUsageNotifierApp:
             resets_at = getattr(u, f"{key}_resets_at", "")
             state = self.plan_alert_states[key]
 
-            if resets_at and resets_at != state.last_resets_at:
-                if state.last_resets_at:
-                    self.log(t("log.usage_reset", label=label))
-                state.crossed_80 = False
-                state.crossed_90 = False
-                state.crossed_100 = False
-                state.silenced_until_reset = False
-                state.last_overrun_notify_ts = 0.0
-                state.last_resets_at = resets_at
+            # Reset detection: compare the previously-stored expected reset
+            # time against wall-clock now. Comparing against the new resets_at
+            # string would false-positive on sub-second drift returned by the API.
+            if state.last_resets_at:
+                try:
+                    prev_dt = datetime.fromisoformat(state.last_resets_at)
+                    if prev_dt <= datetime.now(prev_dt.tzinfo):
+                        self.log(t("log.usage_reset", label=label))
+                        state.silenced_until_reset = False
+                        state.last_overrun_notify_ts = 0.0
+                        state.last_value = 0.0
+                        state.last_resets_at = ""
+                except Exception:
+                    pass
+
+            # Only future values become the next baseline; past values are
+            # ignored so a stale API response can't trigger repeated detections.
+            if resets_at:
+                try:
+                    new_dt = datetime.fromisoformat(resets_at)
+                    if new_dt > datetime.now(new_dt.tzinfo):
+                        state.last_resets_at = resets_at
+                except Exception:
+                    pass
+
+            prev_val = state.last_value
+            state.last_value = val
 
             if state.silenced_until_reset:
                 continue
 
-            if val >= 80 and not state.crossed_80:
-                state.crossed_80 = True
+            if prev_val < 80 <= val:
                 self._notify_plan_threshold(u, key, label, val, 80)
-            if val >= 90 and not state.crossed_90:
-                state.crossed_90 = True
+            if prev_val < 90 <= val:
                 self._notify_plan_threshold(u, key, label, val, 90)
             if val >= 100:
-                if not state.crossed_100:
-                    state.crossed_100 = True
-                    state.last_overrun_notify_ts = now
-                    self._notify_plan_overrun(u, key, label, val)
-                elif now - state.last_overrun_notify_ts >= OVERRUN_REPEAT_SECONDS:
+                if prev_val < 100 or now - state.last_overrun_notify_ts >= OVERRUN_REPEAT_SECONDS:
                     state.last_overrun_notify_ts = now
                     self._notify_plan_overrun(u, key, label, val)
 
@@ -168,26 +180,36 @@ class ClaudeUsageNotifierApp:
 
     # ---- periodic ----
 
+    def _next_periodic_target(self, now: datetime, interval: int) -> datetime:
+        if interval == 30:
+            if now.minute < 30:
+                return now.replace(minute=30, second=0, microsecond=0)
+            else:
+                return (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+        else:
+            return (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+
     def _hourly_scheduler(self):
+        _TICK = 15  # check clock every 15 seconds to handle sleep/wake
+        target = None
         while not self._stop_event.is_set():
             interval = self.config.periodic_notification_minutes
             if interval == 0:
+                target = None
                 if self._stop_event.wait(60):
                     return
                 continue
             now = datetime.now()
-            if interval == 30:
-                if now.minute < 30:
-                    target = now.replace(minute=30, second=0, microsecond=0)
-                else:
-                    target = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-            else:
-                target = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-            delay = max(1.0, (target - now).total_seconds())
-            if self._stop_event.wait(delay):
-                return
-            if self.config.periodic_notification_minutes != 0:
+            if target is None or now >= target + timedelta(minutes=interval):
+                # first run or overslept past an entire cycle — recalculate
+                target = self._next_periodic_target(now, interval)
+            if now >= target:
                 self._send_periodic_notification()
+                target = self._next_periodic_target(now, interval)
+                continue
+            wait = min(_TICK, max(1.0, (target - now).total_seconds()))
+            if self._stop_event.wait(wait):
+                return
 
     def _send_periodic_notification(self):
         u = self.plan_usage

@@ -43,9 +43,7 @@ class PlanUsage:
 
 @dataclass
 class PlanAlertState:
-    crossed_80: bool = False
-    crossed_90: bool = False
-    crossed_100: bool = False
+    last_value: float = 0.0
     silenced_until_reset: bool = False
     last_overrun_notify_ts: float = 0.0
     last_resets_at: str = ""
