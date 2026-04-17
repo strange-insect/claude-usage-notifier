@@ -1,6 +1,6 @@
 # Claude Usage Notifier
 
-<!-- version-badge --><strong>Version 0.0.2</strong><!-- /version-badge -->
+<!-- version-badge --><strong>Version 0.0.3</strong><!-- /version-badge -->
 
 [English README here](README.md)
 
