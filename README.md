@@ -6,7 +6,7 @@
 
 A tray-resident app for Windows / macOS that monitors Claude Code Pro/Max plan usage and shows toast notifications.
 
-- Polls remaining usage for the **5-hour window / 7-day window** every 60 seconds
+- Polls remaining usage for the **5-hour window / 7-day window** every 5 minutes
 - Tray icon shows a colored ring gauge that fills based on usage (status at a glance)
 - Toast notifications at 80% / 90% / 100%; while over 100%, re-notifies every 5 minutes
 - Periodic notifications (every 30 min / every hour / off) switchable from the tray menu
@@ -17,7 +17,7 @@ No window is opened. All interactions are via the tray icon's right-click menu.
 
 ## How it works
 
-It reads the OAuth token Claude Code saves at login (`%APPDATA%\Claude\.credentials.json`, etc.) and calls Anthropic's internal endpoint `api.anthropic.com/api/oauth/usage` every 60 seconds to fetch usage. **No API key required** — if you are already logged into Claude Code with a subscription, no additional setup is needed.
+It reads the OAuth token Claude Code saves at login (`%APPDATA%\Claude\.credentials.json`, etc.) and calls Anthropic's internal endpoint `api.anthropic.com/api/oauth/usage` every 5 minutes to fetch usage. **No API key required** — if you are already logged into Claude Code with a subscription, no additional setup is needed.
 
 ## Prerequisites
 
@@ -74,7 +74,7 @@ macOS:
 python src/claude_usage_notifier.py
 ```
 
-An icon appears in the tray (menu bar) and the first poll runs after 60 seconds.
+An icon appears in the tray (menu bar) and the first poll runs immediately, then every 5 minutes after.
 
 ### Autolaunch at startup
 
@@ -199,7 +199,7 @@ One row appended per successful poll. Columns:
 | `seven_day_pct` | 7-day window usage (%) |
 | `seven_day_resets_at` | 7-day window reset time (UTC ISO) |
 
-With 60-second polling that's about 1440 rows/day (~80 KB). Opens directly in Excel / pandas. If size becomes a concern, archive manually (no rotation).
+With 5-minute polling that's about 288 rows/day (~16 KB). Opens directly in Excel / pandas. If size becomes a concern, archive manually (no rotation).
 
 ## Language (UI)
 
